@@ -98,22 +98,6 @@ def create_buttons(action:int,data:list)->InlineKeyboardBuilder:
     )
     return builder
 
-    builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(
-        text="<--",
-        callback_data=f"basket_{action-1}")
-    )
-    if action+1<len(data):
-        builder.add(types.InlineKeyboardButton(
-            text="-->",
-            callback_data=f"basket_{action+1}")
-        )
-    builder.row(types.InlineKeyboardButton(
-        text="Заказать",
-        callback_data=f"offer")
-    )
-    return builder
-
 
 def create_form_message(product:list)->str:
     message = ""

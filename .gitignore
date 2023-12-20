@@ -2,4 +2,3 @@
 .venv/
 cred.json
 db.py
-test.db
