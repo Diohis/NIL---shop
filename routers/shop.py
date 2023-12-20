@@ -62,12 +62,17 @@ def create_basket_buttons_new(action:int,k:int,data:list)->InlineKeyboardBuilder
         callback_data=f"product_{action}_{k+1}")
     )
     builder.row(types.InlineKeyboardButton(
-        text="Заказать",
-        callback_data=f"offer")
-    )
-    builder.add(types.InlineKeyboardButton(
         text="Закончить просмотр",
         callback_data=f"basket_-1")
+    )
+    builder.add(types.InlineKeyboardButton(
+        text="Удалить из корзины",
+        callback_data=f"basket_{action}_delete")
+    )
+    
+    builder.row(types.InlineKeyboardButton(
+        text="Заказать",
+        callback_data=f"offer")
     )
     return builder
 
@@ -246,19 +251,38 @@ async def callbacks_form(callback: types.CallbackQuery,state: FSMContext):
 async def callbacks_basket(callback: types.CallbackQuery,state: FSMContext):
     action = int(callback.data.split("_")[1])
     data = await state.get_data()
+    if len(callback.data.split("_"))==3:
+        cursor.execute(f"DELETE FROM Basket WHERE user_id={callback.from_user.id} AND boots_id = {data["product"][action][0]}")
+        connection.commit()
+        if len(data["product"])==1:
+            action = -1
+        else:
+            newproduct = data["product"]
+            newproduct.pop(action)
+            newnproduct = data["nProduct"]
+            newnproduct.pop(action)
+            await state.update_data(product = newproduct)
+            await state.update_data(nProduct = newnproduct)
+            if action!=0:
+                action -=1
+        
+            
     if action == -1:
         data = await state.get_data()
-        for k,val in enumerate(data["nProduct"]):
-            cursor.execute(f"UPDATE Basket SET k ={val} WHERE boots_id = {data["product"][k][0]} AND user_id = {callback.from_user.id}")
-            connection.commit()
+        if data.get("nProduct"):
+            for k,val in enumerate(data["nProduct"]):
+                cursor.execute(f"UPDATE Basket SET k ={val} WHERE boots_id = {data["product"][k][0]} AND user_id = {callback.from_user.id}")
+                connection.commit()
         await cmd_cancel(message = callback.message,state = state)
         await callback.message.delete()
         await callback.answer()
+    
     else:
         builder = create_basket_buttons_new(action,data["nProduct"][action],data["product"])
         path = Path("img",data["product"][action][8])
         photo = InputMediaPhoto(media = FSInputFile(path),caption=create_basket_message(data["product"][action]))
         await callback.message.edit_media(media=photo,reply_markup=builder.as_markup())
+    
 
 
 @router.callback_query(F.data.startswith("product_"))
